@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # CONFIGURATION
-OPTION_ALERT_EMAIL="your@personal.email"  #where to send the warning mail
-OPTION_ALERT_ON_CPU_LOAD_IF_EXCEEDS=72.5  #percent, decimal
+OPTION_ALERT_EMAIL="pvansark@id22.nl"  #where to send the warning mail
+OPTION_ALERT_ON_CPU_LOAD_IF_EXCEEDS=85  #percent, decimal
 OPTION_CHECK_n_TIMES=5                    #how many times to check the load of cpu, integer
 OPTION_CHECK_DELAY=6                      #delay between checks, decimal
-OPTION_CALC_DECIMALS_VIA="python"         #arbitrary precision calculator, possible values: {python,php,bc}
-OPTION_CRONTAB_SCHEDULE="*/5 * * * *"
+OPTION_CALC_DECIMALS_VIA="bc"         #arbitrary precision calculator, possible values: {python,php,bc}
+OPTION_CRONTAB_SCHEDULE="* * * * *"
 
 # gets the last top CPU loaded process from distinct `ps` command
 # returns: USER PID %CPU %MEM TIME COMMAND
@@ -21,7 +21,7 @@ evalExpression() {
             echo $(python -c "print int($1)")
             ;;
         "bc")
-            echo $(echo "$1" | bc)
+            echo $(echo "$1" | /usr/bin/bc)
             ;;
         "php")
             echo $(php -r "echo intval($1);");
@@ -63,9 +63,12 @@ processCpuCheck() {
         message=$(echo -e "USER PID %CPU %MEM TIME COMMAND\n${summaryCpuLoadData}\n")
         message=$(sed "s/ /\\t/g" <<<"$message")
         
-        echo "$message"
-        
-        echo $(echo -e "$message" | mail -s "$hostname >> WARNING: CPU LOAD - ${cpuAvgLoad}%" "$OPTION_ALERT_EMAIL")
+       # Log to file instead of mail
+        echo "----------------------" >> /root/cpu_log.txt
+        UPTIME=$(uptime)
+        echo "$UPTIME" >> /root/cpu_log.txt
+        echo  "$message" >> /root/cpu_log.txt 
+        echo "----------------------" >> /root/cpu_log.txt
     fi
     
     #return
@@ -102,5 +105,3 @@ else
     # run check
     processCpuCheck
 fi
-
-
